@@ -1,0 +1,65 @@
+{
+ "service": "ma-integration-intelligence",
+ "run": "demo-1",
+ "tokens": {
+  "lead": "aldermoor-deal_lead-demo",
+  "analyst": "aldermoor-analyst-demo",
+  "viewer": "aldermoor-viewer-demo"
+ },
+ "steps": [
+  {
+   "title": "A target and its data room",
+   "say": "An invented acquirer, Aldermoor Group ($2.4B revenue), is buying Corvane Systems, an industrial IoT software and field-service company, for $1.2B against a standalone value of $940M: a $260M premium that synergies have to pay for. Management's case: $30M a year of cost synergies and $45M of extra revenue, with a single fast ERP cutover. The data room loads in a background job: twelve quarters of financials, both companies' customer masters, the forty largest customer contracts, an independent cyber assessment, both application portfolios, and the licensed database of past deals the models learn from. Then three documents arrive one by one: a side letter, an amendment, and a letter for a customer the target does not have.",
+   "calls": [
+    {"key": "deal", "as": "analyst", "method": "POST", "path": "/v1/deals", "body": {"external_ref": "KESTREL", "name": "Project Kestrel", "target_name": "Corvane Systems", "acquirer_revenue": 2400000000, "price": 1200000000, "standalone_value": 940000000, "relatedness": 0.7, "proposed_approach": "fast", "management_case": {"cost_run_rate": 30000000, "revenue_run_rate": 45000000, "revenue_margin": 0.4, "it_share": 0.35}}},
+    {"key": "room", "as": "lead", "method": "POST", "path": "/v1/diligence/import", "body": {"deal_id": "{{deal.deal_id}}", "generate": {"seed": 31}}},
+    {"key": "docs", "as": "analyst", "method": "POST", "path": "/v1/diligence/import", "body": {"deal_id": "{{deal.deal_id}}", "documents": [
+      {"ref": "VDR-2.41", "kind": "side_letter", "title": "Side letter - Branjorkel Materials", "customer": "Branjorkel Materials Inc", "text": "Side letter to the Master Services Agreement. Notwithstanding anything in the Agreement, Customer may terminate the Agreement if Supplier is acquired by a competitor of Customer."},
+      {"ref": "VDR-2.42", "kind": "side_letter", "title": "Amendment 3 - Garkel Metals", "customer": "Garkel Metals Inc", "text": "Amendment 3 to the Master Services Agreement. If more than half of the voting securities of Supplier are transferred, Customer may elect to terminate."},
+      {"ref": "VDR-2.43", "kind": "side_letter", "title": "Letter - Halvane Pumps", "customer": "Halvane Pumps Ltd", "text": "Letter confirming pricing for the 2027 renewal at the 2026 rates."}
+    ]}},
+    {"key": "target", "as": "viewer", "method": "GET", "path": "/v1/deals/{{deal.deal_id}}"}
+   ]
+  },
+  {
+   "title": "What could break the deal",
+   "say": "Rules read every contract for change-of-control and convenience clauses, and the cyber assessment for open findings; every risk carries the sentence it came from. The customer masters are matched into one entity graph: the acquirer's CRM spells the same customers its own way, and the share of revenue they carry matters later, because shared customers consolidate suppliers. The generator's truth is shown beside each result, including the wording the parser misses.",
+   "calls": [
+    {"key": "risks", "as": "viewer", "method": "GET", "path": "/v1/deals/{{deal.deal_id}}/risks"}
+   ]
+  },
+  {
+   "title": "Synergies as distributions",
+   "say": "Two models are fitted to the deal database: how much of announced synergies past deals realised three years on, and how late ERP programmes ran and how often a cutover went wrong. Deals still ramping and deals that went quiet after their first year are kept, at the point they reached. For this deal, under each integration approach: the cost and revenue synergies as distributions, against management's case, the bankers' comparables and the truth the database came from.",
+   "calls": [
+    {"key": "syn", "as": "analyst", "method": "POST", "path": "/v1/synergies/model", "body": {"deal_id": "{{deal.deal_id}}"}}
+   ]
+  },
+  {
+   "title": "Two application estates",
+   "say": "Both companies' applications are clustered on what they do (their functional tags), not on what they are called. A cluster holding applications from both is an overlap and a candidate for retiring the target's system. The target's ERP and the interfaces it carries become the integration plan.",
+   "calls": [
+    {"key": "systems", "as": "viewer", "method": "GET", "path": "/v1/systems/dependencies?deal_id={{deal.deal_id}}"}
+   ]
+  },
+  {
+   "title": "Fast or staged ERP",
+   "say": "Two ways to move the target onto the acquirer's ERP. Fast: one cutover for every entity, with the interfaces rebuilt by parallel teams. Staged: North America first, then Europe, then Asia-Pacific. For each, the team size is chosen by enumeration, then 10,000 draws of lateness, cutover incidents and synergy realisation give the value of the synergies against the $260M premium, beside the plan as written and the truth.",
+   "calls": [
+    {"key": "scen", "as": "analyst", "method": "POST", "path": "/v1/integration/scenario", "body": {"deal_id": "{{deal.deal_id}}", "draws": 10000, "seed": 2026}}
+   ]
+  },
+  {
+   "title": "Decide, approve, then track",
+   "say": "The analyst proposes the integration approach with its evidence and expected value; they cannot approve it themselves, the deal lead does. Four quarters after close, the synergy reports arrive and the forecast updates; a shortfall opens a review task rather than changing anything. The executive summary is assembled from stored evidence, sentence by sentence, and every step is in a hash-chained audit log.",
+   "calls": [
+    {"key": "propose", "as": "analyst", "method": "POST", "path": "/v1/decisions", "body": {"deal_id": "{{deal.deal_id}}", "scenario_id": "{{scen.result.scenario_id}}", "choice": "fast", "rationale": "Management's plan; the scenario shows fast and staged within a few million dollars of each other, and fast reaches the IT savings a year earlier."}},
+    {"key": "self", "expect_error": true, "as": "analyst", "method": "POST", "path": "/v1/decisions/{{propose.decision_id}}/approve", "body": {"note": "approving my own proposal"}},
+    {"key": "approve", "as": "lead", "method": "POST", "path": "/v1/decisions/{{propose.decision_id}}/approve", "body": {"note": "Approved; cutover readiness review before go-live"}},
+    {"key": "track", "as": "analyst", "method": "POST", "path": "/v1/synergies/track", "body": {"deal_id": "{{deal.deal_id}}", "quarters": 4}},
+    {"key": "summary", "as": "viewer", "method": "GET", "path": "/v1/deals/{{deal.deal_id}}/summary"},
+    {"key": "audit", "as": "lead", "method": "GET", "path": "/v1/audit?limit=14"}
+   ]
+  }
+ ]
+}
